@@ -18,3 +18,5 @@ services:
       - WHATSAPP_HOOK_EVENTS=message,message.any
     volumes:
       - ./data/waha:/app/.sessions
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
