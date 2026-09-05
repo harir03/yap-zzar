@@ -4,6 +4,7 @@ import { config } from './config.js';
 import './db.js';
 import { evaluateRequest, onAudit } from './gate/index.js';
 import { handleRazorpayWebhook } from './razorpay/webhooks.js';
+import { handleWhatsAppWebhook } from './whatsapp/router.js';
 import type { AuditEvent } from './gate/audit.js';
 
 const app = express();
@@ -24,10 +25,8 @@ app.post('/gate/evaluate', (req, res) => {
 // Razorpay webhook
 app.post('/webhook/razorpay', handleRazorpayWebhook);
 
-// WhatsApp webhook — filled in Phase 4
-app.post('/webhook/whatsapp', (_req, res) => {
-  res.json({ received: true });
-});
+// WhatsApp webhook (OpenWA)
+app.post('/webhook/whatsapp', handleWhatsAppWebhook);
 
 // SSE for live audit feed (dashboard)
 app.get('/events', (req, res) => {
