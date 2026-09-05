@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuditFeed } from './AuditFeed';
 import { WalletView } from './WalletView';
 import { Simulator } from './Simulator';
+import { Checkout } from './Checkout';
 
 export default function App() {
   return (
@@ -12,6 +13,12 @@ export default function App() {
       </header>
 
       <div style={styles.grid}>
+        <section style={styles.card}>
+          <h2 style={styles.cardTitle}>💳 Razorpay Web Checkout</h2>
+          <p style={styles.cardDesc}>Standard Checkout with HMAC verification</p>
+          <Checkout />
+        </section>
+
         <section style={styles.card}>
           <h2 style={styles.cardTitle}>🎯 Agent Simulator</h2>
           <p style={styles.cardDesc}>Trigger scenarios to see the gate in action</p>

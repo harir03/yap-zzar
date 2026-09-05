@@ -38,7 +38,7 @@ export async function createPaymentLink(opts: PaymentLinkOptions): Promise<Payme
   return {
     id: link.id,
     short_url: link.short_url,
-    amount: link.amount,
+    amount: Number(link.amount),
     status: link.status,
   };
 }

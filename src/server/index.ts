@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { db } from './db.js';
 import { evaluateRequest, onAudit } from './gate/index.js';
 import { handleRazorpayWebhook } from './razorpay/webhooks.js';
+import { createOrderHandler, verifyPaymentHandler, getKeyIdHandler } from './razorpay/checkout.js';
 import { handleWhatsAppWebhook } from './whatsapp/router.js';
 import { runGrowthPipeline } from './agent/pipeline.js';
 import type { AuditEvent } from './gate/audit.js';
@@ -16,6 +17,13 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', name: 'yap-zzar', version: '1.0.0' });
 });
+
+// Razorpay Standard Checkout endpoints
+app.post('/api/create-order', createOrderHandler);
+app.post('/create-order', createOrderHandler);
+app.post('/api/verify-payment', verifyPaymentHandler);
+app.post('/verify-payment', verifyPaymentHandler);
+app.get('/api/razorpay-key', getKeyIdHandler);
 
 // Gate endpoint — what agents call to request approval
 app.post('/gate/evaluate', (req, res) => {

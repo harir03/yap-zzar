@@ -38,7 +38,7 @@ export async function createOrder(opts: CreateOrderOptions): Promise<OrderResult
 
   return {
     id: order.id,
-    amount: order.amount,
+    amount: Number(order.amount),
     status: order.status,
     receipt: order.receipt ?? opts.receipt,
   };
@@ -67,7 +67,7 @@ export async function createHeldOrder(opts: CreateOrderOptions): Promise<OrderRe
 
   return {
     id: order.id,
-    amount: order.amount,
+    amount: Number(order.amount),
     status: order.status,
     receipt: order.receipt ?? opts.receipt,
   };
