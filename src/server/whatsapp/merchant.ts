@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { sendText } from './client.js';
 import { getWalletByUser, loadWallet, withdrawWallet, getRecentAudit } from '../gate/index.js';
 import { createPaymentLink } from '../razorpay/payment-link.js';
+import { runGrowthPipeline } from '../agent/pipeline.js';
 import type { User, Mandate } from '../types.js';
 
 export async function handleMerchantCommand(user: User, body: string) {
@@ -110,8 +111,16 @@ export async function handleMerchantCommand(user: User, body: string) {
     return;
   }
 
+  // run — trigger growth pipeline manually
+  if (cmd === 'run') {
+    await sendText(user.phone, '🚀 Running growth agent... finding lapsed customers.');
+    const result = await runGrowthPipeline(user.id);
+    await sendText(user.phone, `✅ Done!\n\n📨 Sent: ${result.sent}\n🚫 Blocked: ${result.blocked}\n❌ Errors: ${result.errors}`);
+    return;
+  }
+
   // help
   await sendText(user.phone,
-    `🤖 *Commands*\n\n📊 *status* — campaign stats\n💰 *balance* — wallet balance\n💳 *load 5000* — add ₹5,000\n⏸️ *pause* — pause agent\n▶️ *resume* — resume agent\n📤 *withdraw 1000* — withdraw ₹1,000\n🔧 *max 200* — max discount ₹200\n📋 *audit* — recent activity`
+    `🤖 *Commands*\n\n📊 *status* — campaign stats\n💰 *balance* — wallet balance\n💳 *load 5000* — add ₹5,000\n🚀 *run* — run growth agent now\n⏸️ *pause* — pause agent\n▶️ *resume* — resume agent\n📤 *withdraw 1000* — withdraw ₹1,000\n🔧 *max 200* — max discount ₹200\n📋 *audit* — recent activity`
   );
 }

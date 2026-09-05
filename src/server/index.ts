@@ -5,6 +5,7 @@ import './db.js';
 import { evaluateRequest, onAudit } from './gate/index.js';
 import { handleRazorpayWebhook } from './razorpay/webhooks.js';
 import { handleWhatsAppWebhook } from './whatsapp/router.js';
+import { runGrowthPipeline } from './agent/pipeline.js';
 import type { AuditEvent } from './gate/audit.js';
 
 const app = express();
@@ -20,6 +21,14 @@ app.get('/health', (_req, res) => {
 app.post('/gate/evaluate', (req, res) => {
   const result = evaluateRequest(req.body);
   res.status(result.approved ? 200 : 403).json(result);
+});
+
+// Run the growth pipeline for a merchant (dashboard trigger)
+app.post('/agent/run', async (req, res) => {
+  const { merchant_id } = req.body;
+  if (!merchant_id) { res.status(400).json({ error: 'merchant_id required' }); return; }
+  const result = await runGrowthPipeline(merchant_id);
+  res.json(result);
 });
 
 // Razorpay webhook
