@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from './config.js';
-import './db.js';
+import { db } from './db.js';
 import { evaluateRequest, onAudit } from './gate/index.js';
 import { handleRazorpayWebhook } from './razorpay/webhooks.js';
 import { handleWhatsAppWebhook } from './whatsapp/router.js';
@@ -36,6 +36,17 @@ app.post('/webhook/razorpay', handleRazorpayWebhook);
 
 // WhatsApp webhook (OpenWA)
 app.post('/webhook/whatsapp', handleWhatsAppWebhook);
+
+// Dashboard data endpoints
+app.get('/wallets', (_req, res) => {
+  const wallets = db.prepare('SELECT * FROM wallets').all();
+  res.json(wallets);
+});
+
+app.get('/audit', (_req, res) => {
+  const entries = db.prepare('SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 50').all();
+  res.json(entries);
+});
 
 // SSE for live audit feed (dashboard)
 app.get('/events', (req, res) => {
