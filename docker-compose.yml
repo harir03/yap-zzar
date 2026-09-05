@@ -1,0 +1,15 @@
+services:
+  openwa:
+    image: devlikeapro/waha:latest
+    container_name: yap-zzar-openwa
+    restart: unless-stopped
+    ports:
+      - "2785:3000"
+    environment:
+      - WAHA_ZIP_LOGS=false
+      - WAHA_LOG_LEVEL=INFO
+      - WAHA_PRINT_QR=true
+      - WHATSAPP_HOOK_URL=http://host.docker.internal:3001/webhook/whatsapp
+      - WHATSAPP_HOOK_EVENTS=message,message.any
+    volumes:
+      - ./data/waha:/app/.sessions
