@@ -25,6 +25,40 @@ app.post('/api/verify-payment', verifyPaymentHandler);
 app.post('/verify-payment', verifyPaymentHandler);
 app.get('/api/razorpay-key', getKeyIdHandler);
 
+// WhatsApp session & QR code endpoints
+app.get('/api/whatsapp/qr', async (_req, res) => {
+  try {
+    const qrRes = await fetch(`${config.OPENWA_URL}/api/${config.OPENWA_SESSION}/auth/qr`, {
+      headers: {
+        ...(config.OPENWA_API_KEY ? { 'X-API-Key': config.OPENWA_API_KEY } : {}),
+      },
+    });
+    if (!qrRes.ok) {
+      res.status(qrRes.status).send('QR not available or session already connected');
+      return;
+    }
+    res.setHeader('Content-Type', 'image/png');
+    const arrayBuffer = await qrRes.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/whatsapp/status', async (_req, res) => {
+  try {
+    const statusRes = await fetch(`${config.OPENWA_URL}/api/sessions/${config.OPENWA_SESSION}`, {
+      headers: {
+        ...(config.OPENWA_API_KEY ? { 'X-API-Key': config.OPENWA_API_KEY } : {}),
+      },
+    });
+    const data = await statusRes.json();
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Gate endpoint — what agents call to request approval
 app.post('/gate/evaluate', (req, res) => {
   const result = evaluateRequest(req.body);
