@@ -5,50 +5,53 @@ import { Simulator } from './Simulator';
 import { Checkout } from './Checkout';
 import { BuyScout } from './BuyScout';
 import { WhatsAppPanel } from './WhatsAppPanel';
+import { tokens, appShell, card, cardTitle, cardDesc } from './theme';
 
 export default function App() {
   return (
     <div style={styles.app}>
       <header style={styles.header}>
         <h1 style={styles.title}>yap-zzar</h1>
-        <p style={styles.subtitle}>AI agents buy and sell on WhatsApp. You set the rules. We enforce them.</p>
+        <p style={styles.subtitle}>
+          AI agents buy and sell on WhatsApp. You set the rules. We enforce them.
+        </p>
       </header>
 
       <div style={styles.grid}>
-        <section style={styles.card}>
-          <h2 style={styles.cardTitle}>💳 Razorpay Web Checkout</h2>
-          <p style={styles.cardDesc}>Standard Checkout with HMAC verification</p>
+        <section style={card}>
+          <h2 style={cardTitle}>Razorpay Web Checkout</h2>
+          <p style={cardDesc}>Standard Checkout with HMAC verification</p>
           <Checkout />
         </section>
 
-        <section style={styles.card}>
-          <h2 style={styles.cardTitle}>🎯 Agent Simulator</h2>
-          <p style={styles.cardDesc}>Trigger scenarios to see the gate in action</p>
+        <section style={card}>
+          <h2 style={cardTitle}>Agent Simulator</h2>
+          <p style={cardDesc}>Trigger scenarios to see the gate in action</p>
           <Simulator />
         </section>
 
-        <section style={styles.card}>
-          <h2 style={styles.cardTitle}>🛒 Buy Scout</h2>
-          <p style={styles.cardDesc}>YouTube + reviews → ranked picks (research only)</p>
+        <section style={card}>
+          <h2 style={cardTitle}>Buy Scout</h2>
+          <p style={cardDesc}>YouTube + reviews → ranked picks (research only)</p>
           <BuyScout />
         </section>
 
-        <section style={styles.card}>
-          <h2 style={styles.cardTitle}>📱 WhatsApp</h2>
-          <p style={styles.cardDesc}>Link session via OpenWA QR</p>
+        <section style={card}>
+          <h2 style={cardTitle}>WhatsApp</h2>
+          <p style={cardDesc}>Link session via OpenWA QR</p>
           <WhatsAppPanel />
         </section>
 
-        <section style={styles.card}>
-          <h2 style={styles.cardTitle}>💰 Wallets</h2>
-          <p style={styles.cardDesc}>Real-time wallet balances</p>
+        <section style={card}>
+          <h2 style={cardTitle}>Wallets</h2>
+          <p style={cardDesc}>Real-time wallet balances</p>
           <WalletView />
         </section>
       </div>
 
-      <section style={{ ...styles.card, marginTop: 24 }}>
-        <h2 style={styles.cardTitle}>📋 Live Audit Feed</h2>
-        <p style={styles.cardDesc}>Every gate decision in real-time</p>
+      <section style={{ ...card, marginTop: 24 }}>
+        <h2 style={cardTitle}>Live Audit Feed</h2>
+        <p style={cardDesc}>Every gate decision in real-time</p>
         <AuditFeed />
       </section>
 
@@ -60,37 +63,31 @@ export default function App() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  app: {
-    maxWidth: 960,
-    margin: '0 auto',
-    padding: '24px 16px',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    color: '#e4e4e7',
-    background: '#09090b',
-    minHeight: '100vh',
-  },
-  header: { textAlign: 'center', marginBottom: 32 },
+  app: appShell,
+  header: { textAlign: 'center', marginBottom: 28 },
   title: {
-    fontSize: 36,
-    fontWeight: 800,
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    fontSize: 34,
+    fontWeight: 750,
+    letterSpacing: '-0.03em',
     margin: 0,
+    color: tokens.text,
   },
-  subtitle: { color: '#71717a', fontSize: 14, marginTop: 4 },
+  subtitle: {
+    color: tokens.muted,
+    fontSize: 14,
+    marginTop: 6,
+    lineHeight: 1.45,
+  },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-    gap: 20,
+    gap: 18,
   },
-  card: {
-    background: '#18181b',
-    border: '1px solid #27272a',
-    borderRadius: 12,
-    padding: 20,
+  footer: {
+    textAlign: 'center',
+    marginTop: 36,
+    color: tokens.muted,
+    fontSize: 12,
+    opacity: 0.85,
   },
-  cardTitle: { fontSize: 18, fontWeight: 600, margin: '0 0 4px' },
-  cardDesc: { fontSize: 13, color: '#71717a', margin: '0 0 16px' },
-  footer: { textAlign: 'center', marginTop: 40, color: '#52525b', fontSize: 12 },
 };
