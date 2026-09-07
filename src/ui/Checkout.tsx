@@ -1,21 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import {
+  tokens,
+  label,
+  input,
+  primaryBtn,
+  primaryBtnDisabled,
+  badge,
+  badgeAccent,
+  errorBanner,
+  warnBanner,
+  successBanner,
+} from './theme';
 
 declare global {
   interface Window {
-    Razorpay?: any;
+    Razorpay?: new (options: Record<string, unknown>) => {
+      open: () => void;
+      on: (event: string, handler: (response: unknown) => void) => void;
+    };
   }
 }
 
 export function Checkout() {
   const [amountRupees, setAmountRupees] = useState<number>(250);
-  const [status, setStatus] = useState<'idle' | 'creating' | 'open' | 'verifying' | 'success' | 'cancelled' | 'error'>('idle');
+  const [status, setStatus] = useState<
+    'idle' | 'creating' | 'open' | 'verifying' | 'success' | 'cancelled' | 'error'
+  >('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successData, setSuccessData] = useState<{ payment_id: string; order_id: string } | null>(null);
+  const [successData, setSuccessData] = useState<{
+    payment_id: string;
+    order_id: string;
+  } | null>(null);
   const [razorpayKey, setRazorpayKey] = useState<string>(
-    import.meta.env.VITE_RAZORPAY_KEY_ID || ''
+    import.meta.env.VITE_RAZORPAY_KEY_ID || '',
   );
 
-  // Fallback to fetch public Key ID from backend if not baked into Vite env
   useEffect(() => {
     if (!razorpayKey) {
       fetch('/api/razorpay-key')
@@ -31,7 +50,6 @@ export function Checkout() {
     setErrorMsg(null);
     setSuccessData(null);
 
-    // Validate minimum amount (100 paise = ₹1)
     const amountPaise = Math.round(amountRupees * 100);
     if (!amountRupees || amountPaise < 100) {
       setErrorMsg('Minimum checkout amount is ₹1.00 (100 paise).');
@@ -46,7 +64,6 @@ export function Checkout() {
     try {
       setStatus('creating');
 
-      // STEP 1: BACKEND - Create Order
       const res = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +84,6 @@ export function Checkout() {
 
       setStatus('open');
 
-      // STEP 2: FRONTEND - Open Razorpay Checkout Modal
       const options = {
         key: razorpayKey || import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -81,7 +97,6 @@ export function Checkout() {
           razorpay_order_id: string;
           razorpay_signature: string;
         }) {
-          // STEP 3: BACKEND - Verify Signature
           setStatus('verifying');
           try {
             const verifyRes = await fetch('/api/verify-payment', {
@@ -104,15 +119,20 @@ export function Checkout() {
               });
             } else {
               setStatus('error');
-              setErrorMsg(verifyData.error || 'Payment signature verification failed.');
+              setErrorMsg(
+                verifyData.error || 'Payment signature verification failed.',
+              );
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             setStatus('error');
-            setErrorMsg(err.message || 'Signature verification request failed.');
+            setErrorMsg(
+              err instanceof Error
+                ? err.message
+                : 'Signature verification request failed.',
+            );
           }
         },
         modal: {
-          // Handle modal dismiss (user cancelled)
           ondismiss: function () {
             setStatus('cancelled');
             setErrorMsg('Payment cancelled. Checkout window was closed.');
@@ -124,38 +144,45 @@ export function Checkout() {
           contact: '9876543210',
         },
         theme: {
-          color: '#6366f1',
+          color: tokens.accent,
         },
       };
 
       const rzp = new window.Razorpay(options);
 
-      // Handle payment.failed event
-      rzp.on('payment.failed', function (response: any) {
+      rzp.on('payment.failed', function (response: unknown) {
+        const r = response as {
+          error?: { description?: string; reason?: string };
+        };
         setStatus('error');
         setErrorMsg(
-          response.error?.description ||
-          response.error?.reason ||
-          'Payment failed at the gateway.'
+          r.error?.description ||
+            r.error?.reason ||
+            'Payment failed at the gateway.',
         );
       });
 
       rzp.open();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setErrorMsg(err.message || 'Unexpected checkout error occurred.');
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Unexpected checkout error occurred.',
+      );
     }
   };
+
+  const busy =
+    status === 'creating' || status === 'open' || status === 'verifying';
 
   return (
     <div style={styles.container}>
       <div style={styles.badgeRow}>
-        <span style={styles.badge}>Standard Web Checkout</span>
-        <span style={styles.modeBadge}>Test Mode</span>
+        <span style={badge}>Standard Web Checkout</span>
+        <span style={badgeAccent}>Test Mode</span>
       </div>
 
       <div style={styles.formGroup}>
-        <label style={styles.label}>Checkout Amount (₹ INR)</label>
+        <label style={label}>Checkout Amount (₹ INR)</label>
         <div style={styles.inputWrapper}>
           <span style={styles.currencySymbol}>₹</span>
           <input
@@ -164,9 +191,9 @@ export function Checkout() {
             step="1"
             value={amountRupees}
             onChange={(e) => setAmountRupees(Math.max(1, Number(e.target.value)))}
-            style={styles.input}
+            style={{ ...input, paddingLeft: 28 }}
             placeholder="250"
-            disabled={status === 'creating' || status === 'open' || status === 'verifying'}
+            disabled={busy}
           />
         </div>
       </div>
@@ -188,28 +215,25 @@ export function Checkout() {
       </div>
 
       <button
-        onClick={handlePay}
-        disabled={status === 'creating' || status === 'open' || status === 'verifying'}
+        onClick={() => void handlePay()}
+        disabled={busy}
         style={{
-          ...styles.payButton,
-          ...(status === 'creating' || status === 'open' || status === 'verifying'
-            ? styles.payButtonDisabled
-            : {}),
+          ...primaryBtn,
+          ...(busy ? primaryBtnDisabled : {}),
         }}
       >
-        {status === 'creating' && '⏳ Creating Order...'}
-        {status === 'open' && '💳 Checkout Modal Open...'}
-        {status === 'verifying' && '🔐 Verifying Signature...'}
+        {status === 'creating' && 'Creating Order…'}
+        {status === 'open' && 'Checkout Modal Open…'}
+        {status === 'verifying' && 'Verifying Signature…'}
         {status === 'idle' && `Pay ₹${amountRupees} with Razorpay`}
         {status === 'cancelled' && `Retry Pay ₹${amountRupees}`}
         {status === 'error' && `Try Again (₹${amountRupees})`}
         {status === 'success' && `Pay Another ₹${amountRupees}`}
       </button>
 
-      {/* Success Banner */}
       {status === 'success' && successData && (
-        <div style={styles.successBanner}>
-          <div style={styles.successTitle}>✅ Payment Verified Successfully</div>
+        <div style={successBanner}>
+          <div style={styles.successTitle}>Payment Verified Successfully</div>
           <div style={styles.dataRow}>
             <span style={styles.dataLabel}>Order ID:</span>
             <span style={styles.dataVal}>{successData.order_id}</span>
@@ -224,10 +248,9 @@ export function Checkout() {
         </div>
       )}
 
-      {/* Error / Cancelled Banner */}
       {errorMsg && (
-        <div style={status === 'cancelled' ? styles.warningBanner : styles.errorBanner}>
-          <span>{status === 'cancelled' ? 'ℹ️' : '⚠️'}</span>
+        <div style={status === 'cancelled' ? warnBanner : errorBanner}>
+          <span>{status === 'cancelled' ? 'ℹ' : '⚠'}</span>
           <span>{errorMsg}</span>
         </div>
       )}
@@ -247,31 +270,10 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     marginBottom: 4,
   },
-  badge: {
-    fontSize: 11,
-    padding: '3px 8px',
-    borderRadius: 6,
-    background: '#27272a',
-    color: '#a1a1aa',
-    fontWeight: 500,
-  },
-  modeBadge: {
-    fontSize: 11,
-    padding: '3px 8px',
-    borderRadius: 6,
-    background: '#1e3a8a',
-    color: '#93c5fd',
-    fontWeight: 600,
-  },
   formGroup: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
-  },
-  label: {
-    fontSize: 13,
-    color: '#a1a1aa',
-    fontWeight: 500,
   },
   inputWrapper: {
     position: 'relative',
@@ -281,20 +283,10 @@ const styles: Record<string, React.CSSProperties> = {
   currencySymbol: {
     position: 'absolute',
     left: 12,
-    color: '#71717a',
+    color: tokens.muted,
     fontSize: 16,
     fontWeight: 600,
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px 10px 28px',
-    background: '#18181b',
-    border: '1px solid #3f3f46',
-    borderRadius: 8,
-    color: '#f4f4f5',
-    fontSize: 15,
-    fontWeight: 600,
-    outline: 'none',
+    zIndex: 1,
   },
   pillRow: {
     display: 'flex',
@@ -304,46 +296,20 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 14px',
     fontSize: 12,
     fontWeight: 600,
-    background: '#27272a',
-    border: '1px solid #3f3f46',
+    background: tokens.surface2,
+    border: `1px solid ${tokens.border}`,
     borderRadius: 20,
-    color: '#d4d4d8',
+    color: tokens.text,
     cursor: 'pointer',
-    transition: 'all 0.15s ease',
+    fontFamily: tokens.font,
   },
   pillActive: {
-    background: '#4f46e5',
-    borderColor: '#6366f1',
-    color: '#ffffff',
-  },
-  payButton: {
-    padding: '12px 20px',
-    background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-    border: 'none',
-    borderRadius: 8,
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-    transition: 'transform 0.1s ease, opacity 0.15s ease',
-  },
-  payButtonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-    boxShadow: 'none',
-  },
-  successBanner: {
-    background: 'rgba(16, 185, 129, 0.1)',
-    border: '1px solid rgba(16, 185, 129, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
+    background: tokens.accent,
+    borderColor: tokens.accent,
+    color: tokens.bg,
   },
   successTitle: {
-    color: '#34d399',
+    color: tokens.accent,
     fontWeight: 600,
     fontSize: 14,
   },
@@ -351,39 +317,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: 12,
-    fontFamily: 'monospace',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
   },
   dataLabel: {
-    color: '#a1a1aa',
+    color: tokens.muted,
   },
   dataVal: {
-    color: '#f4f4f5',
+    color: tokens.text,
   },
   successNote: {
     fontSize: 11,
-    color: '#6ee7b7',
+    color: tokens.muted,
     marginTop: 4,
-  },
-  warningBanner: {
-    background: 'rgba(234, 179, 8, 0.1)',
-    border: '1px solid rgba(234, 179, 8, 0.3)',
-    borderRadius: 8,
-    padding: '10px 12px',
-    color: '#fde047',
-    fontSize: 13,
-    display: 'flex',
-    gap: 8,
-    alignItems: 'center',
-  },
-  errorBanner: {
-    background: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    borderRadius: 8,
-    padding: '10px 12px',
-    color: '#fca5a5',
-    fontSize: 13,
-    display: 'flex',
-    gap: 8,
-    alignItems: 'center',
   },
 };
