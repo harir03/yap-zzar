@@ -2,20 +2,21 @@ import { sendText } from './client.js';
 import { getWalletByUser, withdrawWallet } from '../gate/index.js';
 import { createPaymentLink } from '../razorpay/payment-link.js';
 import { db } from '../db.js';
+import { runBuyScout, formatScoutWhatsApp } from '../agent/buyScout.js';
 import type { User } from '../types.js';
+
+const pendingScouts = new Map<string, Awaited<ReturnType<typeof runBuyScout>>>();
 
 export async function handleBuyerCommand(user: User, body: string) {
   const cmd = body.toLowerCase().trim();
   const wallet = getWalletByUser(user.id, 'buyer');
 
-  // balance
   if (cmd === 'balance' || cmd === 'bal') {
     const bal = wallet ? (wallet.balance / 100).toFixed(2) : '0.00';
     await sendText(user.phone, `💰 Your wallet: *₹${bal}*`);
     return;
   }
 
-  // load <amount>
   const loadMatch = cmd.match(/^load\s+(\d+)$/);
   if (loadMatch && wallet) {
     const rupees = parseInt(loadMatch[1], 10);
@@ -38,7 +39,6 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  // withdraw <amount>
   const withdrawMatch = cmd.match(/^withdraw\s+(\d+)$/);
   if (withdrawMatch && wallet) {
     const rupees = parseInt(withdrawMatch[1], 10);
@@ -51,7 +51,6 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  // history
   if (cmd === 'history') {
     if (!wallet) { await sendText(user.phone, 'No wallet found.'); return; }
     const txns = db.prepare(`
@@ -71,8 +70,49 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  // help
+  // buy / find / scout <query> [needs: ...]
+  const buyMatch = body.trim().match(/^(?:buy|find|scout)\s+(.+)$/i);
+  if (buyMatch) {
+    await sendText(user.phone, '🔎 Scouting YouTube + reviews… hang tight.');
+    const raw = buyMatch[1].trim();
+    const needsSplit = raw.split(/\bneeds?:\s*/i);
+    const query = needsSplit[0].trim();
+    const needs = needsSplit[1]?.trim() ?? '';
+    try {
+      const result = await runBuyScout(query, needs);
+      pendingScouts.set(user.id, result);
+      await sendText(user.phone, formatScoutWhatsApp(result));
+    } catch (err: any) {
+      await sendText(user.phone, `⚠️ Scout failed: ${err?.message ?? 'unknown error'}`);
+    }
+    return;
+  }
+
+  const confirmMatch = cmd.match(/^buy\s+confirm\s+([123])$/);
+  if (confirmMatch) {
+    const scout = pendingScouts.get(user.id);
+    if (!scout) {
+      await sendText(user.phone, 'No active scout. Try `buy wireless earbuds needs: under 3k bass` first.');
+      return;
+    }
+    const pick = scout.picks.find(p => p.rank === Number(confirmMatch[1])) ?? scout.picks[0];
+    await sendText(
+      user.phone,
+      `✅ *Human confirm logged* for #${pick.rank} ${pick.name}\n\n` +
+        `yap-zzar will *not* auto-pay. Next: load wallet if needed, then complete checkout when the merchant link arrives.\n\n` +
+        `_${scout.disclaimer}_`,
+    );
+    return;
+  }
+
   await sendText(user.phone,
-    `🤖 *Commands*\n\n💰 *balance* — wallet balance\n💳 *load 1000* — add ₹1,000\n📋 *history* — past transactions\n📤 *withdraw 500* — withdraw ₹500`
+    `🤖 *Buyer commands*\n\n` +
+      `🛒 *buy <thing>* — scout YouTube + reviews\n` +
+      `   e.g. buy wireless earbuds needs: under 3k, good mic\n` +
+      `✅ *buy confirm 1* — confirm pick (no auto-pay)\n` +
+      `💰 *balance* — wallet balance\n` +
+      `💳 *load 1000* — add ₹1,000\n` +
+      `📋 *history* — past transactions\n` +
+      `📤 *withdraw 500* — withdraw ₹500`,
   );
 }
