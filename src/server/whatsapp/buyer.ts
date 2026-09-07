@@ -90,7 +90,7 @@ export async function handleBuyerCommand(user: User, body: string) {
     const pick = scout.picks.find(p => p.rank === parsed.rank) ?? scout.picks[0];
     await sendText(
       user.phone,
-      `✅ *Human confirm logged` for #${pick.rank} ${pick.name}\n\n` +
+      `✅ *Human confirm logged* for #${pick.rank} ${pick.name}\n\n` +
         `yap-zzar will *not* auto-pay. Next: load wallet if needed, then complete checkout when the merchant link arrives.\n\n` +
         `_${scout.disclaimer}_`,
     );
