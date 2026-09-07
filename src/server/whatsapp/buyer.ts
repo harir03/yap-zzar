@@ -4,22 +4,22 @@ import { createPaymentLink } from '../razorpay/payment-link.js';
 import { db } from '../db.js';
 import { runBuyScout, formatScoutWhatsApp } from '../agent/buyScout.js';
 import type { User } from '../types.js';
+import { parseBuyerCommand } from './buyerCommands.js';
 
 const pendingScouts = new Map<string, Awaited<ReturnType<typeof runBuyScout>>>();
 
 export async function handleBuyerCommand(user: User, body: string) {
-  const cmd = body.toLowerCase().trim();
+  const parsed = parseBuyerCommand(body);
   const wallet = getWalletByUser(user.id, 'buyer');
 
-  if (cmd === 'balance' || cmd === 'bal') {
+  if (parsed.type === 'balance') {
     const bal = wallet ? (wallet.balance / 100).toFixed(2) : '0.00';
     await sendText(user.phone, `💰 Your wallet: *₹${bal}*`);
     return;
   }
 
-  const loadMatch = cmd.match(/^load\s+(\d+)$/);
-  if (loadMatch && wallet) {
-    const rupees = parseInt(loadMatch[1], 10);
+  if (parsed.type === 'load' && wallet) {
+    const rupees = parsed.rupees;
     if (rupees < 50 || rupees > 50000) {
       await sendText(user.phone, '❌ Amount must be between ₹50 and ₹50,000');
       return;
@@ -39,9 +39,8 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  const withdrawMatch = cmd.match(/^withdraw\s+(\d+)$/);
-  if (withdrawMatch && wallet) {
-    const rupees = parseInt(withdrawMatch[1], 10);
+  if (parsed.type === 'withdraw' && wallet) {
+    const rupees = parsed.rupees;
     const ok = withdrawWallet(wallet.id, rupees * 100);
     if (ok) {
       await sendText(user.phone, `✅ Withdrawn *₹${rupees}*. It'll be in your bank within 2-3 business days.`);
@@ -51,7 +50,7 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  if (cmd === 'history') {
+  if (parsed.type === 'history') {
     if (!wallet) { await sendText(user.phone, 'No wallet found.'); return; }
     const txns = db.prepare(`
       SELECT kind, amount, description, created_at FROM transactions
@@ -70,16 +69,10 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  // buy / find / scout <query> [needs: ...]
-  const buyMatch = body.trim().match(/^(?:buy|find|scout)\s+(.+)$/i);
-  if (buyMatch) {
-    await sendText(user.phone, '🔎 Scouting YouTube + reviews… hang tight.');
-    const raw = buyMatch[1].trim();
-    const needsSplit = raw.split(/\bneeds?:\s*/i);
-    const query = needsSplit[0].trim();
-    const needs = needsSplit[1]?.trim() ?? '';
+  if (parsed.type === 'buy') {
+    await sendText(user.phone, '🔍 Scouting YouTube + reviews… hang tight.');
     try {
-      const result = await runBuyScout(query, needs);
+      const result = await runBuyScout(parsed.query, parsed.needs);
       pendingScouts.set(user.id, result);
       await sendText(user.phone, formatScoutWhatsApp(result));
     } catch (err: any) {
@@ -88,17 +81,16 @@ export async function handleBuyerCommand(user: User, body: string) {
     return;
   }
 
-  const confirmMatch = cmd.match(/^buy\s+confirm\s+([123])$/);
-  if (confirmMatch) {
+  if (parsed.type === 'buy_confirm') {
     const scout = pendingScouts.get(user.id);
     if (!scout) {
       await sendText(user.phone, 'No active scout. Try `buy wireless earbuds needs: under 3k bass` first.');
       return;
     }
-    const pick = scout.picks.find(p => p.rank === Number(confirmMatch[1])) ?? scout.picks[0];
+    const pick = scout.picks.find(p => p.rank === parsed.rank) ?? scout.picks[0];
     await sendText(
       user.phone,
-      `✅ *Human confirm logged* for #${pick.rank} ${pick.name}\n\n` +
+      `✅ *Human confirm logged` for #${pick.rank} ${pick.name}\n\n` +
         `yap-zzar will *not* auto-pay. Next: load wallet if needed, then complete checkout when the merchant link arrives.\n\n` +
         `_${scout.disclaimer}_`,
     );
