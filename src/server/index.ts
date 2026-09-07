@@ -7,6 +7,7 @@ import { handleRazorpayWebhook } from './razorpay/webhooks.js';
 import { createOrderHandler, verifyPaymentHandler, getKeyIdHandler } from './razorpay/checkout.js';
 import { handleWhatsAppWebhook } from './whatsapp/router.js';
 import { runGrowthPipeline } from './agent/pipeline.js';
+import { runBuyScout } from './agent/buyScout.js';
 import type { AuditEvent } from './gate/audit.js';
 
 const app = express();
@@ -65,6 +66,32 @@ app.post('/gate/evaluate', (req, res) => {
   res.status(result.approved ? 200 : 403).json(result);
 });
 
+
+// Buyer shopping scout — YouTube + reviews → ranked picks (research only)
+app.post('/api/buy-scout', async (req, res) => {
+  const query = String(req.body?.query ?? '').trim();
+  const needs = String(req.body?.needs ?? '').trim();
+  if (!query) { res.status(400).json({ error: 'query required' }); return; }
+  try {
+    const result = await runBuyScout(query, needs);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'scout failed' });
+  }
+});
+
+app.get('/api/buy-scout', async (req, res) => {
+  const query = String(req.query.query ?? '').trim();
+  const needs = String(req.query.needs ?? '').trim();
+  if (!query) { res.status(400).json({ error: 'query required' }); return; }
+  try {
+    const result = await runBuyScout(query, needs);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'scout failed' });
+  }
+});
+
 // Run the growth pipeline for a merchant (dashboard trigger)
 app.post('/agent/run', async (req, res) => {
   const { merchant_id } = req.body;
@@ -113,6 +140,7 @@ app.listen(config.PORT, () => {
   │   API:      http://localhost:${config.PORT}     │
   │   Health:   http://localhost:${config.PORT}/health │
   │   Mode:     ${config.NODE_ENV.padEnd(24)}│
+  │                                         │
   │                                         │
   └─────────────────────────────────────────┘
   `);
