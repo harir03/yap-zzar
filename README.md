@@ -289,3 +289,16 @@ The future of Indian commerce isn't another app. It's a conversation.
   <em>Built for the Razorpay Hackathon 2025</em><br/>
   <strong>yap-zzar</strong> — because the best UI is no UI.
 </p>
+
+---
+
+## Buy scout + Vercel
+
+**Buy scout** ranks shopping picks from YouTube + review/retail signals.
+
+Research only — never auto-pays. Dashboard posts to /api/buy-scout. WhatsApp: buy <thing> needs: ... then buy confirm 1.
+
+Optional env: YOUTUBE_API_KEY for live YouTube Data API v3.
+
+**Vercel (UI):** vercel.json uses Vite build, outputDirectory dist, SPA rewrite to index.html. API stays on Node/Bun Express.
+

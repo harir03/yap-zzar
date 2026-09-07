@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { AuditFeed } from './AuditFeed';
 import { WalletView } from './WalletView';
 import { Simulator } from './Simulator';
 import { Checkout } from './Checkout';
+import { BuyScout } from './BuyScout';
+import { WhatsAppPanel } from './WhatsAppPanel';
 
 export default function App() {
   return (
@@ -23,6 +25,18 @@ export default function App() {
           <h2 style={styles.cardTitle}>🎯 Agent Simulator</h2>
           <p style={styles.cardDesc}>Trigger scenarios to see the gate in action</p>
           <Simulator />
+        </section>
+
+        <section style={styles.card}>
+          <h2 style={styles.cardTitle}>🛒 Buy Scout</h2>
+          <p style={styles.cardDesc}>YouTube + reviews → ranked picks (research only)</p>
+          <BuyScout />
+        </section>
+
+        <section style={styles.card}>
+          <h2 style={styles.cardTitle}>📱 WhatsApp</h2>
+          <p style={styles.cardDesc}>Link session via OpenWA QR</p>
+          <WhatsAppPanel />
         </section>
 
         <section style={styles.card}>
@@ -55,10 +69,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#09090b',
     minHeight: '100vh',
   },
-  header: {
-    textAlign: 'center',
-    marginBottom: 32,
-  },
+  header: { textAlign: 'center', marginBottom: 32 },
   title: {
     fontSize: 36,
     fontWeight: 800,
@@ -67,11 +78,7 @@ const styles: Record<string, React.CSSProperties> = {
     WebkitTextFillColor: 'transparent',
     margin: 0,
   },
-  subtitle: {
-    color: '#71717a',
-    fontSize: 14,
-    marginTop: 4,
-  },
+  subtitle: { color: '#71717a', fontSize: 14, marginTop: 4 },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
@@ -83,20 +90,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 12,
     padding: 20,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 600,
-    margin: '0 0 4px',
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: '#71717a',
-    margin: '0 0 16px',
-  },
-  footer: {
-    textAlign: 'center',
-    marginTop: 40,
-    color: '#52525b',
-    fontSize: 12,
-  },
+  cardTitle: { fontSize: 18, fontWeight: 600, margin: '0 0 4px' },
+  cardDesc: { fontSize: 13, color: '#71717a', margin: '0 0 16px' },
+  footer: { textAlign: 'center', marginTop: 40, color: '#52525b', fontSize: 12 },
 };
